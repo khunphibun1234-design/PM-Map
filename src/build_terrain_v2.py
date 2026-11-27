@@ -545,6 +545,9 @@ for i in range(len(RING)):          # a few cars driving on the ring road (left-
         x = a[0] + (b[0] - a[0]) * t_ + nx_ * side * 2.4; z = a[1] + (b[1] - a[1]) * t_ + nz_ * side * 2.4
         cars.append((round(x, 1), round(z, 1), round(ang + (math.pi if side > 0 else 0), 3), int(rng.integers(0, 6))))
 
+# keep the road in front of the school sign / main gate clear (teacher)
+cars = [c for c in cars if math.hypot(c[0] - L.SIGN['x'], c[1] - L.SIGN['z']) > 30 and math.hypot(c[0] - L.GATE['x'], c[1] - L.GATE['z']) > 30]
+
 NW = 257
 Hs = ndimage.zoom(H, NW / N, order=1)[:NW, :NW]
 (np.clip((Hs - HMIN) / (HMAX - HMIN), 0, 1) * 65535).astype("<u2").tofile(f"{OUT}/height_257.u16")
