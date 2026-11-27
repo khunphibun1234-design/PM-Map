@@ -51,7 +51,11 @@
   #pick .opts{display:flex;gap:12px}
   #pick button{flex:1;border:2px solid #d9dee6;background:#f6f8fb;border-radius:14px;padding:14px 8px;font:inherit;cursor:pointer}
   #pick button:hover,#pick button:active{border-color:#d7193f;background:#fff4f6}
-  #pick .ico{font-size:40px;line-height:1.1}
+  #pick .ph{position:relative;display:block;width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;background:linear-gradient(160deg,#e9e4fb,#cfc6f2)}
+  #pick .ph img{width:100%;height:100%;object-fit:cover;display:block}
+  #pick .pose{position:absolute;right:6px;bottom:6px;width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 3px 10px rgba(0,0,0,.25);animation:wave 1.6s ease-in-out infinite}
+  @keyframes wave{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}50%{transform:rotate(10deg)}}
+  #pick button{padding:8px 8px 12px}
   #pick .lbl{display:block;margin-top:6px;font-size:15px;font-weight:700;color:#1d2b4f}
   #pick .wait{display:none;margin-top:12px;font-size:13px;color:#4a5260}
   #arrive{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:40;background:#fff;border-radius:16px;padding:16px 18px;max-width:min(400px,calc(100vw - 28px));box-shadow:0 14px 50px rgba(0,0,0,.3);display:none;font-size:13.5px;color:#3a4252;line-height:1.55}
@@ -71,7 +75,7 @@
 <body>
 <div id="loading">กำลังสร้างแมพ…</div>
 <div class="hud">
-  <h1>โรงเรียนพิบูลมังสาหาร · CU-TEP Exam Venue Map v8.10</h1>
+  <h1>โรงเรียนพิบูลมังสาหาร · CU-TEP Exam Venue Map v8.11</h1>
   <p id="info">เขตโรงเรียน + ถนนรอบ · Heightmap 1025² (16-bit) · ลากเพื่อหมุน, บีบ/สกรอลล์เพื่อซูม</p>
   <div class="legend" id="legend"></div>
 </div>
@@ -82,8 +86,8 @@
   <h2>เลือกตัวละครของคุณ</h2>
   <p>ก่อนเข้าชมสนามสอบ เลือกว่าคุณเป็นนักเรียนชายหรือนักเรียนหญิง<br>แล้วเดินไปดู <b>หอประชุมราษฎร์รังสรรค์</b> ห้องสอบจริงได้เลย</p>
   <div class="opts">
-    <button data-kind="boy"><span class="ico">👦</span><span class="lbl">นักเรียนชาย</span></button>
-    <button data-kind="girl"><span class="ico">👧</span><span class="lbl">นักเรียนหญิง</span></button>
+    <button data-kind="boy"><span class="ph"><img src="__PICK_BOY__" alt="นักเรียนชาย"><span class="pose">👍</span></span><span class="lbl">นักเรียนชาย</span></button>
+    <button data-kind="girl"><span class="ph"><img src="__PICK_GIRL__" alt="นักเรียนหญิง"><span class="pose">✌️</span></span><span class="lbl">นักเรียนหญิง</span></button>
   </div>
   <div class="wait">กำลังโหลดตัวละคร…</div>
 </div></div>

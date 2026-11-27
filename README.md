@@ -13,4 +13,4 @@
 - `template_v2.html` — ตัวแสดงผล three.js
 - `build_page_v2.py` — รวมทุกอย่างเป็น `index.html` (ต้องมีไฟล์ assets: albedo, โลโก้, ตัวละคร .glb)
 
-เวอร์ชันปัจจุบัน: CU-TEP Exam Venue Map v8.10
+เวอร์ชันปัจจุบัน: CU-TEP Exam Venue Map v8.11
