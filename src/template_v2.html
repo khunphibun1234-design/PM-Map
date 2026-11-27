@@ -71,7 +71,7 @@
 <body>
 <div id="loading">กำลังสร้างแมพ…</div>
 <div class="hud">
-  <h1>โรงเรียนพิบูลมังสาหาร · CU-TEP Exam Venue Map v8.5</h1>
+  <h1>โรงเรียนพิบูลมังสาหาร · CU-TEP Exam Venue Map v8.10</h1>
   <p id="info">เขตโรงเรียน + ถนนรอบ · Heightmap 1025² (16-bit) · ลากเพื่อหมุน, บีบ/สกรอลล์เพื่อซูม</p>
   <div class="legend" id="legend"></div>
 </div>
@@ -2107,6 +2107,47 @@ for (const [x, z, s, fa] of LAYOUT.hoops) {
   for (const im of [body, cab]) { im.castShadow = true; world.add(im); }
 }
 
+// ---------------------------------------------------------------- moving traffic on the ring road
+// block cars drive round the school on the left side of the road (Thai traffic), both directions;
+// they slow down near the gates and stop for the player character standing in front of them
+{
+  const R = LAYOUT.ring || [];
+  if (R.length > 2) {
+    const pts = [...R, R[0]], seg = [];
+    let total = 0;
+    for (let i = 0; i < pts.length - 1; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1], l = Math.hypot(bx - ax, bz - az); seg.push({ ax, az, dx: (bx - ax) / l, dz: (bz - az) / l, l, s0: total }); total += l; }
+    const at = (s) => { s = ((s % total) + total) % total; let k = seg.length - 1; for (let i = 0; i < seg.length; i++) if (s < seg[i].s0 + seg[i].l) { k = i; break; } const g = seg[k], t = s - g.s0; return { x: g.ax + g.dx * t, z: g.az + g.dz * t, dx: g.dx, dz: g.dz }; };
+    const gates = (LAYOUT.gates || [LAYOUT.gate]).filter(Boolean);
+    const cols = ['#f4f4f4', '#1d1f22', '#b8bcc0', '#2c4a7a', '#8f1f24', '#e9e9e4', '#d9a520', '#3f6f45'];
+    const N = 12, cars = [];
+    for (let i = 0; i < N; i++) { const dir = i % 2 ? -1 : 1; cars.push({ s: (i * total / N + (dir < 0 ? total / (2 * N) : 0)), dir, v: 8, yaw: null, col: cols[i % cols.length] }); }
+    const body = new THREE.InstancedMesh(new THREE.BoxGeometry(4.4, 0.9, 1.8).translate(0, 0.75, 0), new THREE.MeshLambertMaterial(), N);
+    const cab = new THREE.InstancedMesh(new THREE.BoxGeometry(2.4, 0.7, 1.6).translate(-0.2, 1.55, 0), new THREE.MeshLambertMaterial({ color: '#2a3138' }), N);
+    const lights = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.22, 1.5).translate(2.21, 0.85, 0), new THREE.MeshBasicMaterial({ color: '#fff6d0' }), N);
+    const c = new THREE.Color(); cars.forEach((k, i) => body.setColorAt(i, c.set(k.col)));
+    for (const im of [body, cab, lights]) { im.castShadow = im !== lights; im.frustumCulled = false; im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); world.add(im); }
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1), v3 = new THREE.Vector3();
+    let last = performance.now();
+    updaters.push(() => {
+      const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000); last = now;
+      cars.forEach((k, i) => {
+        const p = at(k.s), dx = p.dx * k.dir, dz = p.dz * k.dir;
+        const x = p.x + dz * 1.9, z = p.z - dx * 1.9;                 // keep to the left of the direction of travel
+        let target = 8.0;
+        for (const g of gates) if (Math.hypot(x - g.x, z - g.z) < 28) target = 3.5;
+        if (player && player.obj) { const ax = player.x - x, az = player.z - z, ahead = ax * dx + az * dz, side = Math.abs(-ax * dz + az * dx); if (ahead > 0 && ahead < 9 && side < 2.2) target = 0; }
+        k.v += (target - k.v) * Math.min(1, dt * 2.0);
+        k.s += k.v * k.dir * dt;
+        const yaw = Math.atan2(dz, dx);
+        if (k.yaw === null) k.yaw = yaw; let d = yaw - k.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); k.yaw += d * Math.min(1, dt * 4);
+        q.setFromAxisAngle(up, -k.yaw); m.compose(v3.set(x, heightAt(x, z), z), q, one);
+        body.setMatrixAt(i, m); cab.setMatrixAt(i, m); lights.setMatrixAt(i, m);
+      });
+      body.instanceMatrix.needsUpdate = cab.instanceMatrix.needsUpdate = lights.instanceMatrix.needsUpdate = true;
+    });
+  }
+}
+
 // ---------------------------------------------------------------- trees (instanced, 3 species)
 {
   const ts = LAYOUT.trees;
@@ -2211,6 +2252,7 @@ for (const w of LAYOUT.walkways || []) {
   } else {
     for (const t of posts) for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, PH, 8), post); p.position.set(t, PH / 2, s * (hw - 0.1)); p.castShadow = true; g.add(p); }
     for (const s of [-1, 1]) bx(w.len, 0.22, 0.14, beam, 0, PH, s * (hw - 0.1));
+    if (w.kind === 'roadside') bx(w.len, 0.08, w.wid, lam('#c9c5bc'), 0, 0.04, 0);   // concrete footpath under the roadside shelter
   }
   const nR = Math.max(2, Math.round(w.len / 3));
   for (let i = 0; i <= nR; i++) bx(0.08, 0.1, w.wid, beam, -w.len / 2 + i * w.len / nR, PH + 0.05, 0);
@@ -2458,7 +2500,7 @@ const VIEWS = {
   'ใต้โดมอเนกประสงค์': [[-29, 5, -35], [-8, 2.5, -56]],
   'ห้องปฐมพยาบาล': [[33, 9, 2], [38, 2, -20]],
   'เสาธง': [[0, 18, -80], [-28.9, 20, -109.4]],
-  'พระพุทธรูป': [[81.3, 4.5, -66.5], [93.3, 3.6, -76.5]],
+  'พระพุทธรูป': [[84.1, 4.5, -68.2], [96.1, 3.6, -78.2]],
   'โรงอาหาร 2 ชั้น': [[79, 12, -46], [117, 5, -74]],
   'น้ำพุ': [[-44, 5.5, 138], [-38, 3, 121]],
   'ห้องเรียนพิเศษ IEP': [[-22, 9, 73], [2, 7, 48]],

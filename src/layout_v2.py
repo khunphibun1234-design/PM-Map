@@ -731,3 +731,95 @@ NO_TREES = NO_TREES + [[(133.6, -14.0), (127.1, -17.0), (124.7, -23.8), (127.7, 
 
 # 2026-11-27: public toilets between หอประชุมศรีวนาลัย and the white-roof workshop (teacher's red box), doors to the road
 BUILDINGS.append(dict(type='toilet', th='ห้องน้ำ', en='Toilets', cx=45.6, cz=25.8, len=9.5, wid=13.0, ang=0.437, floors=1, fh=3.4))
+
+# 2026-11-27: covered walkway (rain/sun shelter) along the track side of road W, from the bend by the
+# multipurpose dome down past Sriwanalai and the IEP building to the drop-off canopy (teacher's red line)
+def _side_path(pts, off):
+    out = []
+    for i, p in enumerate(pts):
+        ds = []
+        for a, b in ((pts[i - 1], p) if i > 0 else (p, pts[1]), (p, pts[i + 1]) if i < len(pts) - 1 else (pts[-2], p)):
+            l = math.hypot(b[0] - a[0], b[1] - a[1]); ds.append(((b[0] - a[0]) / l, (b[1] - a[1]) / l))
+        nx = sum(-d[1] for d in ds) / 2; nz = sum(d[0] for d in ds) / 2; nl = math.hypot(nx, nz)
+        cosh = max(0.5, (ds[0][0] * ds[1][0] + ds[0][1] * ds[1][1] + 1) / 2) ** 0.5
+        out.append((p[0] + nx / nl * off / cosh, p[1] + nz / nl * off / cosh))
+    return out
+_wc = [(-41.8, -70.9), (-24.6, -39.8), (-19.6, -15.7), (-36.2, 49.5), (-47.8, 87.0)]
+_cand = [_side_path(_wc, 7.0), _side_path(_wc, -7.0)]
+_wp = min(_cand, key=lambda P: sum(x for x, z in P))          # the track (west) side
+for _a, _b in zip(_wp, _wp[1:]):
+    _l = math.hypot(_b[0] - _a[0], _b[1] - _a[1])
+    _w = dict(cx=round((_a[0] + _b[0]) / 2, 2), cz=round((_a[1] + _b[1]) / 2, 2), len=round(_l + 1.2, 2), wid=3.2,
+              ang=round(math.atan2(_b[1] - _a[1], _b[0] - _a[0]), 4), kind='roadside')
+    _w['posts'] = _posts(_w, 4.0)
+    WALKWAYS.append(_w)
+
+# 2026-11-27 (2): second roadside covered walkway, east side of road E, from the bend by the library down past
+# the AP / classroom buildings to หอประชุมพิบูลประชาสรรค์ and the vocational centre (teacher's red line)
+_wc2 = [(118.0, -22.8), (119.7, -11.6), (107.0, 50.1), (97.0, 111.8), (86.6, 142.0)]
+_wp2 = max([_side_path(_wc2, 7.0), _side_path(_wc2, -7.0)], key=lambda P: sum(x for x, z in P))   # east side
+for _a, _b in zip(_wp2, _wp2[1:]):
+    _l = math.hypot(_b[0] - _a[0], _b[1] - _a[1])
+    _w = dict(cx=round((_a[0] + _b[0]) / 2, 2), cz=round((_a[1] + _b[1]) / 2, 2), len=round(_l + 1.2, 2), wid=3.2,
+              ang=round(math.atan2(_b[1] - _a[1], _b[0] - _a[0]), 4), kind='roadside')
+    _w['posts'] = _posts(_w, 4.0)
+    WALKWAYS.append(_w)
+
+# 2026-11-27 (3): road-E shelters continue north: east side from the road-W junction past the canteen to the
+# library bend (joins the earlier one), and west side from the junction up towards the north gate
+_wc3 = [(68.0, -100.6), (85.0, -75.4), (118.0, -22.8)]
+_wc4 = [(57.6, -121.5), (47.5, -146.0)]
+_new = [max([_side_path(_wc3, 7.0), _side_path(_wc3, -7.0)], key=lambda P: sum(x for x, z in P)),
+        min([_side_path(_wc4, 7.0), _side_path(_wc4, -7.0)], key=lambda P: sum(x for x, z in P))]
+for _wp3 in _new:
+    for _a, _b in zip(_wp3, _wp3[1:]):
+        _l = math.hypot(_b[0] - _a[0], _b[1] - _a[1])
+        _w = dict(cx=round((_a[0] + _b[0]) / 2, 2), cz=round((_a[1] + _b[1]) / 2, 2), len=round(_l + 1.2, 2), wid=3.2,
+                  ang=round(math.atan2(_b[1] - _a[1], _b[0] - _a[0]), 4), kind='roadside')
+        _w['posts'] = _posts(_w, 4.0)
+        WALKWAYS.append(_w)
+
+_cb = [b for b in BUILDINGS if b.get('type') == 'canteen60'][0]; _ca, _sa = math.cos(_cb['ang']), math.sin(_cb['ang'])
+BUDDHA.update(x=round(_cb['cx'] + _ca * -15.0 - _sa * 15.2, 2), z=round(_cb['cz'] + _sa * -15.0 + _ca * 15.2, 2))   # step back from the new shelter
+
+# 2026-11-27 (4): roadside shelters pulled in to the kerb (teacher) and a gap left in front of the Buddha shrine
+WALKWAYS = [w for w in WALKWAYS if w.get('kind') != 'roadside']
+def _shelter(cl, side, rw):
+    off = rw / 2 + 0.35 + 1.6                                     # kerb + half the shelter width
+    P = [_side_path(cl, off), _side_path(cl, -off)]
+    return (min if side == 'W' else max)(P, key=lambda Q: sum(x for x, z in Q))
+_runs = [(_wc, 'W', 6.5), (_wc2, 'E', 7.0), (_wc3, 'E', 7.0), (_wc4, 'W', 7.0)]
+_bx, _bz = BUDDHA['x'], BUDDHA['z']
+for _cl, _sd, _rw in _runs:
+    _wp = _shelter(_cl, _sd, _rw)
+    for _a, _b in zip(_wp, _wp[1:]):
+        _l = math.hypot(_b[0] - _a[0], _b[1] - _a[1]); _ux, _uz = (_b[0] - _a[0]) / _l, (_b[1] - _a[1]) / _l
+        _parts = [(0.0, _l)]
+        _t = (_bx - _a[0]) * _ux + (_bz - _a[1]) * _uz; _d = abs(-(_bx - _a[0]) * _uz + (_bz - _a[1]) * _ux)
+        if 0 < _t < _l and _d < 12: _parts = [(0.0, _t - 4.5), (_t + 4.5, _l)]      # open in front of the shrine
+        for _t0, _t1 in _parts:
+            if _t1 - _t0 < 2: continue
+            _e0 = _t0 - (0.6 if _t0 == 0 else 0); _e1 = _t1 + (0.6 if _t1 == _l else 0)
+            _m = (_e0 + _e1) / 2
+            _w = dict(cx=round(_a[0] + _ux * _m, 2), cz=round(_a[1] + _uz * _m, 2), len=round(_e1 - _e0, 2), wid=3.2,
+                      ang=round(math.atan2(_uz, _ux), 4), kind='roadside')
+            _w['posts'] = _posts(_w, 4.0)
+            WALKWAYS.append(_w)
+# nudge any shelter whose edge still touches the carriageway back to the kerb line
+def _roadclear(w):
+    c, s = math.cos(w['ang']), math.sin(w['ang']); best = 9e9
+    for i in range(21):
+        for v in (-w['wid'] / 2, w['wid'] / 2):
+            u = -w['len'] / 2 + w['len'] * i / 20; p = (w['cx'] + c * u - s * v, w['cz'] + s * u + c * v)
+            for pts, rw in ROADS:
+                for a, b in zip(pts, pts[1:]):
+                    dx, dz = b[0] - a[0], b[1] - a[1]; t = max(0, min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / (dx * dx + dz * dz)))
+                    best = min(best, math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dz) - rw / 2)
+    return best
+for _w in [w for w in WALKWAYS if w.get('kind') == 'roadside']:
+    for _ in range(12):
+        if _roadclear(_w) >= 0.2: break
+        _nx, _nz = -math.sin(_w['ang']), math.cos(_w['ang'])
+        _side = 1 if _roadclear(dict(_w, cx=_w['cx'] + _nx * 0.3, cz=_w['cz'] + _nz * 0.3)) > _roadclear(dict(_w, cx=_w['cx'] - _nx * 0.3, cz=_w['cz'] - _nz * 0.3)) else -1
+        _w['cx'] = round(_w['cx'] + _side * _nx * 0.15, 2); _w['cz'] = round(_w['cz'] + _side * _nz * 0.15, 2)
+    _w['posts'] = _posts(_w, 4.0)

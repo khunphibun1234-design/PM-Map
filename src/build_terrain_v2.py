@@ -537,7 +537,7 @@ cars = []
 for (px, pz) in getattr(L, 'PARKING', [(-32 + i * 5.5, -10.6) for i in range(6)]):    # car park
     cars.append((round(px, 1), round(pz, 1), round(math.pi / 2, 3), int(rng.integers(0, 6))))
 
-for i in range(len(RING)):          # a few cars driving on the ring road (left-hand traffic)
+for i in ([] if getattr(L, 'MOVING_CARS', True) else range(len(RING))):          # static ring cars (replaced by animated traffic in the viewer)
     a, b = RING[i], RING[(i + 1) % len(RING)]
     ang = math.atan2(b[1] - a[1], b[0] - a[0]); nx_, nz_ = -math.sin(ang), math.cos(ang)
     for _ in range(3):
@@ -601,7 +601,7 @@ print("junctions", len(JUNCTIONS))
 
 layout_out = dict(
     version=2, world=L.WORLD, hmin=HMIN, hmax=HMAX, grid=NW,
-    campus=L.CAMPUS, bound=BOUND,
+    campus=L.CAMPUS, bound=BOUND, ring=[[round(x, 2), round(z, 2)] for x, z in RING],
     buildings=[dict(b, y=hb(b)) for b in L.BUILDINGS],
     canopies=[dict(c, y=hb(c)) for c in L.CANOPIES],
     grandstand=dict(G, y=hb(G)),
